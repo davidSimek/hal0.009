@@ -21,12 +21,10 @@ void handle_instruction();
 int execute_instruction();
 
 void run() {
-
   while (should_run) {
     if (registers[PC] > USER_MEMORY_SIZE - 1) {
       hal_exit(DIDNT_EXIT_PROGRAM);
     }
-
     handle_instruction();
   }
 }
@@ -39,19 +37,16 @@ void handle_instruction() {
 int execute_instruction() {
   int move_by = 1;
   uint8_t instruction = program_memory[registers[PC]];
-  printf("executing instruction %d\n", instruction);
   switch (instruction) {
   case MOVAR:
     uint8_t argument = program_memory[registers[PC + 1]];
     uint8_t reg = program_memory[registers[PC + 2]];
     registers[reg] = argument;
-    printf("instruction: MOVAR\n");
     move_by = 3;
     break;
   case EXIT:
-    printf("instruction: EXIT\n");
     move_by = 0;
-    hal_exit(SUCCESS);
+    should_run = false;
     break;
   default:
     hal_exit(ILLEGAL_INSTRUCTION);
