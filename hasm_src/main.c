@@ -68,12 +68,13 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
    
-  output_file_name = malloc(hasm_file_len - 1);
+  output_file_name = malloc(hasm_file_len + 1);
   memcpy(output_file_name, argv[1], hasm_file_len - 4);
-  output_file_name[hasm_file_len - 1] = 0;
-  output_file_name[hasm_file_len - 2 ] = 'n';
-  output_file_name[hasm_file_len - 3 ] = 'i';
-  output_file_name[hasm_file_len - 4 ] = 'b';
+  output_file_name[hasm_file_len] = 0;
+  output_file_name[hasm_file_len - 1 ] = 'n';
+  output_file_name[hasm_file_len - 2 ] = 'i';
+  output_file_name[hasm_file_len - 3 ] = 'b';
+  output_file_name[hasm_file_len - 4 ] = 'h';
   output_file = fopen(output_file_name, "w");
 
   if (!output_file) {
