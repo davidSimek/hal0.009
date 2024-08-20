@@ -31,7 +31,7 @@ operation
 
 Last 4 bits specify specific operation. For example `0110` might be move operation, which copies value from one register to another one.
 
-## Instructions I want to have implemented first.
+## Implemented memory instructions
 | instruction |            name | explanation                            |
 |------------:|----------------:|:---------------------------------------|
 |  10-00-0000 | movar(arg to reg) | copies value from ragument to register |
