@@ -1,12 +1,12 @@
 !!! under development !!!
 # Hal 0.009
 simple virtual machine
-## It has:
+## Features:
 - its instruction set
 - its assembly language (hasm)
 - its assembler
 
-## how to use
+## How to use:
 1. Check instruction.md for avalible instructions.
 2. Check registers.md for avalible registers.
 3. Check memory.md (in progress) for memory structure.
