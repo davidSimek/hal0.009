@@ -21,8 +21,8 @@ simple virtual machine
    EXIT
    ```
 7. assemble  
-   `./asm move_to_register.hasm`
+   `./hasm move_to_register.hasm`
 8. run your code  
-   `./run move_to_register.bin`
+   `./hal move_to_register.bin`
 
 You should see register dump.
