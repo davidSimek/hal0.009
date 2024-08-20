@@ -7,11 +7,15 @@
 typedef enum {
   NUMBER,
   REGISTER,
-  INSTRUCTION
+  INSTRUCTION,
+  NONE
 } token_type;
 
 typedef enum {
   MOVAR = 0b10000000,
+  MOVRR = 0b10010000,
+  MOVRM = 0b10100000,
+  MOVMR = 0b10110000,
   EXIT  = 0b11000000
 } instruction;
 
@@ -21,14 +25,17 @@ size_t hasm_source_size;
 FILE *output_file;
 char* output_file_name;
 
+int expect_head = 0;
+
 void load_hasm(FILE *);
 void assemble_hasm();
 bool matches_expectation(char* token);
 void write_as_bin(token_type type, char *token);
+void set_expect(int n, token_type a, token_type b);
+
 int parsed_int = 0;
 
 token_type expect[4];
-int expect_head = 0;
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -121,8 +128,11 @@ void assemble_hasm() {
 
 bool matches_expectation(char* token) {
   if (expect[expect_head] == INSTRUCTION) {
-    if (strcmp(token, "MOVAR") ||
-	strcmp(token, "EXIT")) {
+    if (strcmp(token, "MOVAR") == 0 ||
+	strcmp(token, "MOVRR") == 0 ||
+	strcmp(token, "MOVRM") == 0 ||
+	strcmp(token, "MOVMR") == 0 |
+	strcmp(token, "EXIT")  == 0) {
       return true;
     } else {
       printf("Expected instruction, got %s\n", token);
@@ -155,14 +165,19 @@ void write_as_bin(token_type type, char *token) {
   if (type == INSTRUCTION) {
     if (strcmp(token, "MOVAR") == 0) {
       fputc((uint8_t)MOVAR, output_file);
-      expect[0] = INSTRUCTION;
-      expect[1] = REGISTER;
-      expect[2] = NUMBER;
-      expect_head = 2;
+      set_expect(2, NUMBER, REGISTER);
+    } else if (strcmp(token, "MOVRR") == 0) {
+      fputc((uint8_t)MOVRR, output_file);
+      set_expect(2, REGISTER, REGISTER);
+    } else if (strcmp(token, "MOVRM") == 0) {
+      fputc((uint8_t)MOVRM, output_file);
+      set_expect(2, REGISTER, NUMBER);
+    } else if (strcmp(token, "MOVMR") == 0) {
+      fputc((uint8_t)MOVMR, output_file);
+      set_expect(2, NUMBER, REGISTER);
     } else if (strcmp(token, "EXIT") == 0) {
       fputc((uint8_t)EXIT, output_file);
-      expect[0] = INSTRUCTION;
-      expect_head = 0;
+      set_expect(0, NONE, NONE);
     } else {
       perror("Invalid istruction.\n");
       exit(EXIT_FAILURE);
@@ -218,4 +233,14 @@ void write_as_bin(token_type type, char *token) {
   } else {
     perror("Invalid type.\n");
   }
+}
+
+void set_expect(int n, token_type a, token_type b) {
+  if (n < 0 || n > 2) {
+    printf("In set_expect, n has to be < 2 and > 0\n");
+  }
+  expect_head = n;
+  expect[2] = a;
+  expect[1] = b;
+  expect[0] = INSTRUCTION;
 }
