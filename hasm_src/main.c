@@ -4,10 +4,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define INSTRUCTION_MAP_SIZE 5
+
 typedef enum {
   NUMBER,
   REGISTER,
   INSTRUCTION,
+  LABEL,
   NONE
 } token_type;
 
@@ -16,10 +19,86 @@ typedef enum {
   MOVRR = 0b10010000,
   MOVRM = 0b10100000,
   MOVMR = 0b10110000,
-  EXIT  = 0b11000000
-} instruction;
+  EXIT = 0b11000000
+} hal_instruction;
+
+#define REGISTER_COUNT 20
+
+typedef enum {
+  RESULT = 0,
+  A      = 1,
+  B      = 2,
+  C      = 3,
+  D      = 4,
+  E      = 5,
+  F      = 6,
+  G      = 7,
+  H      = 8,
+  I      = 9,
+  J      = 10,
+  K      = 11,
+  L      = 12,
+  M      = 13,
+  N      = 14,
+  O      = 15,
+  P      = 16,
+  SP     = 17,
+  BP     = 18,
+  PC     = 19
+} hal_register;
+
+typedef struct {
+  char* token;
+  hal_instruction instruction;
+  int expect;
+  token_type arg1;
+  token_type arg2;
+} instruction_entry;
+
+typedef struct {
+  char* token;
+  hal_register hal_register;
+} register_entry;
+
+typedef struct {
+  char* label;
+  uint8_t address;
+} label_entry;
+
+instruction_entry instruction_map[INSTRUCTION_MAP_SIZE] = {
+  {"MOVAR", MOVAR, 2, NUMBER,   REGISTER},
+  {"MOVRR", MOVRR, 2, REGISTER, REGISTER},
+  {"MOVRM", MOVRM, 2, REGISTER, NUMBER},
+  {"MOVMR", MOVMR, 2, NUMBER,   REGISTER},
+  {"EXIT",  EXIT,  0, NONE,     NONE}
+};
+
+register_entry register_map[REGISTER_COUNT] = {
+  {"RESULT", RESULT},
+  {"A",      A},
+  {"B",      B},
+  {"C",      C},
+  {"D",      D},
+  {"E",      E},
+  {"F",      F},
+  {"G",      G},
+  {"H",      H},
+  {"I",      I},
+  {"J",      J},
+  {"K",      K},
+  {"L",      L},
+  {"M",      M},
+  {"N",      N},
+  {"O",      O},
+  {"P",      P},
+  {"SP",     SP},
+  {"BP",     BP},
+  {"PC",     PC},
+};
 
 char *hasm_source;
+char *hasm_source_labels;
+
 size_t hasm_source_size;
 
 FILE *output_file;
@@ -28,12 +107,26 @@ char* output_file_name;
 int expect_head = 0;
 
 void load_hasm(FILE *);
+
+label_entry** label_map = 0;
+size_t labels_head = 0;
+void find_labels();
+void add_label(char* token, size_t current_address);
+
 void assemble_hasm();
-bool matches_expectation(char* token);
-void write_as_bin(token_type type, char *token);
+
+bool matches_expectation(char *token);
 void set_expect(int n, token_type a, token_type b);
 
+void write_as_bin(token_type type, char *token);
+
+void write_instruction(char *token);
+void write_number(char *token);
+void write_register(char* token);
+
 int parsed_int = 0;
+
+
 
 token_type expect[4];
 
@@ -84,6 +177,7 @@ int main(int argc, char** argv) {
 
   load_hasm(hasm_file);
   fclose(hasm_file);
+  find_labels();
   assemble_hasm();
 
   fclose(output_file);
@@ -101,10 +195,37 @@ void load_hasm(FILE* hasm) {
     exit(EXIT_FAILURE);
   }
   hasm_source = (char*)malloc(hasm_source_size + 1);
+  hasm_source_labels = (char*)malloc(hasm_source_size + 1);
   if (!hasm_source) {
     perror("Couldn't allocate memory for hasm_souce.\n");
   }
   fread(hasm_source, hasm_source_size, 1, hasm);
+  memcpy(hasm_source_labels, hasm_source, hasm_source_size);
+}
+
+void find_labels() {
+  size_t current_address = 0;
+  label_map = malloc(sizeof(label_entry*));
+  char* token = strtok(hasm_source_labels, " \n\t");
+  while (token) {
+     if (token[strlen(token) - 1] == ':') {
+       add_label(token, current_address);
+     } else {
+       ++current_address;
+     }
+    token = strtok(NULL, " \n\t");
+  }
+}
+
+void add_label(char *token, size_t current_address) {
+  size_t token_size = strlen(token);
+  label_map[labels_head] = (label_entry*)malloc(token_size);
+  label_map[labels_head]->label = token;
+  label_map[labels_head]->label[token_size - 1] = 0;
+  label_map[labels_head]->address = current_address;
+  ++labels_head;
+  label_map = realloc(label_map, labels_head);
+  printf("label %s\ton address %3d added\n", label_map[labels_head - 1]->label, label_map[labels_head - 1]->address);
 }
 
 void assemble_hasm() {
@@ -116,6 +237,14 @@ void assemble_hasm() {
       token = strtok(NULL, " \n\t");
       continue;
     }
+
+    // ignore labels
+    if (token[strlen(token) - 1] == ':') {
+      printf("%s is label\n", token);
+      token = strtok(NULL, " \n\t");
+      continue;
+    }
+    
     if (!matches_expectation(token)) {
       perror("Expected different token here.");
       exit(EXIT_FAILURE);
@@ -129,29 +258,31 @@ void assemble_hasm() {
 
 bool matches_expectation(char* token) {
   if (expect[expect_head] == INSTRUCTION) {
-    if (strcmp(token, "MOVAR") == 0 ||
-	strcmp(token, "MOVRR") == 0 ||
-	strcmp(token, "MOVRM") == 0 ||
-	strcmp(token, "MOVMR") == 0 |
-	strcmp(token, "EXIT")  == 0) {
-      return true;
-    } else {
-      printf("Expected instruction, got %s\n", token);
-      return false;
+    for (int i = 0; i < INSTRUCTION_MAP_SIZE; ++i) {
+      if (strcmp(instruction_map[i].token, token) == 0) {
+	return true;
+      }
     }
+    printf("Expected instruction, got %s\n", token);
+    return false;
   } else if (expect[expect_head] == NUMBER) {
     char* end;
     parsed_int = strtol(token, &end, 10);
     if (*end == '\0' && parsed_int >= 0 && parsed_int < 255) {
       return true;
     } else {
-      printf("Expected numebr, got %s\n", token);
+      printf("Expected number, got %s\n", token);
       return false;
     }
   } else if (expect[expect_head] == REGISTER) {
-    return true;
+    for (int i = 0; i < REGISTER_COUNT; ++i) {
+      if (strcmp(register_map[i].token, token) == 0) {
+        return true;
+      }
+    }
+    return false;
   } else {
-    perror("Expect something, which is not even a choice.");
+    perror("Expect something, what  is not even a choice.");
     exit(EXIT_FAILURE);
   }
   return false;
@@ -164,75 +295,15 @@ void write_as_bin(token_type type, char *token) {
   }
   
   if (type == INSTRUCTION) {
-    if (strcmp(token, "MOVAR") == 0) {
-      fputc((uint8_t)MOVAR, output_file);
-      set_expect(2, NUMBER, REGISTER);
-    } else if (strcmp(token, "MOVRR") == 0) {
-      fputc((uint8_t)MOVRR, output_file);
-      set_expect(2, REGISTER, REGISTER);
-    } else if (strcmp(token, "MOVRM") == 0) {
-      fputc((uint8_t)MOVRM, output_file);
-      set_expect(2, REGISTER, NUMBER);
-    } else if (strcmp(token, "MOVMR") == 0) {
-      fputc((uint8_t)MOVMR, output_file);
-      set_expect(2, NUMBER, REGISTER);
-    } else if (strcmp(token, "EXIT") == 0) {
-      fputc((uint8_t)EXIT, output_file);
-      set_expect(0, NONE, NONE);
-    } else {
-      perror("Invalid istruction.\n");
-      exit(EXIT_FAILURE);
-    }
+    write_instruction(token);
   } else if (type == NUMBER) {
     fputc((uint8_t)parsed_int, output_file);
     --expect_head;
   } else if (type == REGISTER) {
-    if (strcmp(token, "RESULT") == 0) {
-      putc((uint8_t)0b00000000, output_file);
-    } else if (strcmp(token, "A") == 0) {
-      putc((uint8_t)0b00000001, output_file);
-    } else if (strcmp(token, "B") == 0) {
-      putc((uint8_t)0b00000010, output_file);
-    } else if (strcmp(token, "C") == 0) {
-      putc((uint8_t)0b00000011, output_file);
-    } else if (strcmp(token, "D") == 0) {
-      putc((uint8_t)0b00000100, output_file);
-    } else if (strcmp(token, "E") == 0) {
-      putc((uint8_t)0b00000101, output_file);
-    } else if (strcmp(token, "F") == 0) {
-      putc((uint8_t)0b00000110, output_file);
-    } else if (strcmp(token, "G") == 0) {
-      putc((uint8_t)0b00000111, output_file);
-    } else if (strcmp(token, "H") == 0) {
-      putc((uint8_t)0b00001000, output_file);
-    } else if (strcmp(token, "I") == 0) {
-      putc((uint8_t)0b00001001, output_file);
-    } else if (strcmp(token, "J") == 0) {
-      putc((uint8_t)0b00001010, output_file);
-    } else if (strcmp(token, "K") == 0) {
-      putc((uint8_t)0b00001011, output_file);
-    } else if (strcmp(token, "L") == 0) {
-      putc((uint8_t)0b00001100, output_file);
-    } else if (strcmp(token, "M") == 0) {
-      putc((uint8_t)0b00001101, output_file);
-    } else if (strcmp(token, "N") == 0) {
-      putc((uint8_t)0b00001110, output_file);
-    } else if (strcmp(token, "O") == 0) {
-      putc((uint8_t)0b00001111, output_file);
-    } else if (strcmp(token, "P") == 0) {
-      putc((uint8_t)0b00010000, output_file);
-    } else if (strcmp(token, "SP") == 0) {
-      putc((uint8_t)0b00010001, output_file);
-    } else if (strcmp(token, "BP") == 0) {
-      putc((uint8_t)0b00010010, output_file);
-    } else if (strcmp(token, "PC") == 0) {
-      putc((uint8_t)0b00010011, output_file);
-    } else {
-      printf("Invalid register. You used %s\n", token);
-    }
-    --expect_head;
+    write_register(token);
   } else {
     perror("Invalid type.\n");
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -244,4 +315,28 @@ void set_expect(int n, token_type a, token_type b) {
   expect[2] = a;
   expect[1] = b;
   expect[0] = INSTRUCTION;
+}
+
+void write_instruction(char *token) {
+  for (int i = 0; i < INSTRUCTION_MAP_SIZE; ++i) {
+    if (strcmp(token, instruction_map[i].token) == 0) {
+      fputc((uint8_t)instruction_map[i].instruction, output_file);
+      set_expect(instruction_map[i].expect, instruction_map[i].arg1, instruction_map[i].arg2);
+      return;
+    }
+  }
+  perror("Invalid instruction.\n");
+  exit(EXIT_FAILURE);
+}
+
+void write_register(char *token) {
+  for (int i = 0; i < REGISTER_COUNT; ++i) {
+    if (strcmp(token, register_map[i].token) == 0) {
+      putc((uint8_t)register_map[i].hal_register, output_file);
+      --expect_head;
+      return;
+    }
+  }
+  printf("Invalid register. You used %s\n", token);
+  exit(EXIT_FAILURE);
 }

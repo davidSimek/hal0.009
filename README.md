@@ -6,6 +6,9 @@ simple virtual machine
 - its assembly language (hasm)
 - its assembler
 
+## News
+- assembler now can process labels like `copyAtoB:`, but there is no instruction that uses them now. It will be next goal to add `goto` instruction.
+
 ## How to use:
 1. Check instruction.md for avalible instructions.
 2. Check registers.md for avalible registers.

@@ -1,6 +1,8 @@
-MOVAR 33  A
-MOVAR 31  B
-MOVRR B   D
-MOVRM D  22
-MOVMR 22  F
-EXIT
+main:
+	MOVAR 33  A
+	MOVAR 31  B
+function:
+	MOVRR B   D
+	MOVRM D  22
+	MOVMR 22  F
+	EXIT
