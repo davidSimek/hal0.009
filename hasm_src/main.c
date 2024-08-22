@@ -240,7 +240,6 @@ void assemble_hasm() {
 
     // ignore labels
     if (token[strlen(token) - 1] == ':') {
-      printf("%s is label\n", token);
       token = strtok(NULL, " \n\t");
       continue;
     }
