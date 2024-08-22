@@ -20,7 +20,7 @@ simple virtual machine
 6. write hasm file ending with `.hasm`  
    move_to_register.hasm
    ```
-   MOVMR 123 C
+   MOVAR 123 C
    EXIT
    ```
 7. assemble  
