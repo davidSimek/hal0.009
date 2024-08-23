@@ -7,7 +7,7 @@ simple virtual machine
 - its assembler
 
 ## News
-- assembler now can process labels like `copyAtoB:`, but there is no instruction that uses them now. It will be next goal to add `goto` instruction.
+- Assembler now can process labels like `copyAtoB:` and jump to them using `jmp` instruction.
 
 ## How to use:
 1. Check instruction.md for avalible instructions.
@@ -20,8 +20,11 @@ simple virtual machine
 6. write hasm file ending with `.hasm`  
    move_to_register.hasm
    ```
-   MOVAR 123 C
-   EXIT
+   mov_123_to_C:
+	   MOVAR 123 C
+	   jmp exit
+   exit:
+	   EXIT
    ```
 7. assemble  
    `./hasm move_to_register.hasm`

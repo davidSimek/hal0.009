@@ -10,8 +10,9 @@ typedef enum {
   MOV = 0
 } memory_instructions;
 
-typedef enum {
-  EXIT = 0
+ typedef enum {
+  EXIT = 0,
+  JMP  = 1
 } flow_instructions;
 
 typedef enum {
@@ -33,7 +34,9 @@ int execute_memory_instruction(uint8_t instruction);
 int execute_flow_instruction(uint8_t instruction);
 
 void execute_mov(uint8_t instruction);
+
 void execute_exit(uint8_t instruction);
+void execute_jmp(uint8_t instruction);
 
 uint8_t arg1();
 uint8_t arg2();
@@ -53,12 +56,11 @@ void handle_instruction() {
 }
 
 int execute_instruction() {
-  int move_by = 1;
   uint8_t instruction = program_memory[registers[PC]];
   uint8_t general_type = instruction >> 6;
   switch (general_type) {
   case INVALID:
-    printf("Instruction %d has invalid type.\n", instruction);
+    printf("Instruction %d on address %d has invalid type.\n", instruction, registers[PC]);
     exit(EXIT_FAILURE);
     break;
   case MATH:
@@ -71,6 +73,8 @@ int execute_instruction() {
     return execute_flow_instruction(instruction);
     break;
   }
+  printf("Instruction %d on address %d has invalid type.\n", instruction, registers[PC]);
+  exit(EXIT_FAILURE);
 }
 
 int execute_math_instruction(uint8_t instruction) {
@@ -84,8 +88,12 @@ int execute_flow_instruction(uint8_t instruction) {
     should_run = false;
     return 1;
     break;
+  case JMP:
+    execute_jmp(instruction);
+    return 0;
+    break;
   default:
-    printf("invalid instruction %d in execute_memory_instruction()\n");
+    printf("invalid instruction %d in execute_memory_instruction()\n", instruction);
     exit(EXIT_FAILURE);
   }
 }
@@ -120,10 +128,18 @@ void execute_mov(uint8_t instruction) {
   }
 }
 
+void execute_jmp(uint8_t instruction) {
+  registers[PC] = arg1();
+}
+
 uint8_t arg1() {
   return program_memory[registers[PC] + 1];
 }
 
 uint8_t arg2() {
   return program_memory[registers[PC] + 2];
+}
+
+void kill_hal() {
+  should_run = false;
 }

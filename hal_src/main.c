@@ -1,10 +1,16 @@
 #include "memory.h"
 #include "interpreter.h"
 
+#include <signal.h>
 #include <stdio.h>
 
+void handle_interupt(int signal) {
+  printf("\nSIGINT caught, killing hal...\n");
+  kill_hal();
+}
 
 int main(int argc, char **argv) {
+  signal(SIGINT, handle_interupt);
   init_program_memory(argc, argv);
   init_user_memory();
   

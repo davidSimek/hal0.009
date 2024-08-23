@@ -4,14 +4,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define INSTRUCTION_MAP_SIZE 5
+#define INSTRUCTION_MAP_SIZE 6
 
 typedef enum {
-  NUMBER,
-  REGISTER,
-  INSTRUCTION,
-  LABEL,
-  NONE
+  NUMBER      = 0,
+  REGISTER    = 1,
+  INSTRUCTION = 2,
+  LABEL       = 3,
+  NONE        = 4
 } token_type;
 
 typedef enum {
@@ -19,7 +19,8 @@ typedef enum {
   MOVRR = 0b10010000,
   MOVRM = 0b10100000,
   MOVMR = 0b10110000,
-  EXIT = 0b11000000
+  EXIT  = 0b11000000,
+  JMP   = 0b11000001
 } hal_instruction;
 
 #define REGISTER_COUNT 20
@@ -70,7 +71,8 @@ instruction_entry instruction_map[INSTRUCTION_MAP_SIZE] = {
   {"MOVRR", MOVRR, 2, REGISTER, REGISTER},
   {"MOVRM", MOVRM, 2, REGISTER, NUMBER},
   {"MOVMR", MOVMR, 2, NUMBER,   REGISTER},
-  {"EXIT",  EXIT,  0, NONE,     NONE}
+  {"EXIT",  EXIT,  0, NONE,     NONE},
+  {"JMP",   JMP,   1, LABEL,    NONE}
 };
 
 register_entry register_map[REGISTER_COUNT] = {
@@ -115,14 +117,29 @@ void add_label(char* token, size_t current_address);
 
 void assemble_hasm();
 
-bool matches_expectation(char *token);
+void check_matches_expectation(char* token);
 void set_expect(int n, token_type a, token_type b);
 
-void write_as_bin(token_type type, char *token);
+void write_as_bin(token_type type, char* token);
 
-void write_instruction(char *token);
-void write_number(char *token);
+void write_instruction(char* token);
+void write_number(char* token);
 void write_register(char* token);
+void write_label(char* token);
+
+const char* num_to_type(size_t n) {
+  if (n == REGISTER)
+    return "REGISTER";
+  if (n == NUMBER)
+    return "NUMBER";
+  if (n == LABEL)
+    return "LABEL";
+  if (n == NONE)
+    return "NONE";
+  if (n == INSTRUCTION)
+    return "INSTRUCTION";
+  return "not valid instruction";
+}
 
 int parsed_int = 0;
 
@@ -244,47 +261,52 @@ void assemble_hasm() {
       continue;
     }
     
-    if (!matches_expectation(token)) {
-      perror("Expected different token here.");
-      exit(EXIT_FAILURE);
-    }
-
+    check_matches_expectation(token);
     write_as_bin(expect[expect_head], token);
     
     token = strtok(NULL, " \n\t");
   }
 }
 
-bool matches_expectation(char* token) {
+void check_matches_expectation(char* token) {
+  // kill if should be instruction, but is not
   if (expect[expect_head] == INSTRUCTION) {
     for (int i = 0; i < INSTRUCTION_MAP_SIZE; ++i) {
       if (strcmp(instruction_map[i].token, token) == 0) {
-	return true;
+	return;
       }
     }
     printf("Expected instruction, got %s\n", token);
-    return false;
-  } else if (expect[expect_head] == NUMBER) {
+    exit(EXIT_FAILURE);
+  }
+
+  // kill if should be number, but is not
+  if (expect[expect_head] == NUMBER) {
     char* end;
     parsed_int = strtol(token, &end, 10);
     if (*end == '\0' && parsed_int >= 0 && parsed_int < 255) {
-      return true;
-    } else {
-      printf("Expected number, got %s\n", token);
-      return false;
+      return;
     }
-  } else if (expect[expect_head] == REGISTER) {
-    for (int i = 0; i < REGISTER_COUNT; ++i) {
-      if (strcmp(register_map[i].token, token) == 0) {
-        return true;
-      }
-    }
-    return false;
-  } else {
-    perror("Expect something, what  is not even a choice.");
+    printf("Expected number, got %s\n", token);
     exit(EXIT_FAILURE);
   }
-  return false;
+
+  // kill if should be register, but is not
+  if (expect[expect_head] == REGISTER) {
+    for (int i = 0; i < REGISTER_COUNT; ++i) {
+      if (strcmp(register_map[i].token, token) == 0) {
+        return;
+      }
+    }
+    printf("Expected register, got %s\n", token);
+  }
+  if (expect[expect_head] == LABEL) {
+     
+     return;
+  }
+  
+  printf("Expect %d, what  is not even a choice.", expect[expect_head]);
+  exit(EXIT_FAILURE);
 }
 
 void write_as_bin(token_type type, char *token) {
@@ -292,7 +314,6 @@ void write_as_bin(token_type type, char *token) {
     perror("Expect head is out of bounds.\n");
     exit(EXIT_FAILURE);
   }
-  
   if (type == INSTRUCTION) {
     write_instruction(token);
   } else if (type == NUMBER) {
@@ -300,6 +321,8 @@ void write_as_bin(token_type type, char *token) {
     --expect_head;
   } else if (type == REGISTER) {
     write_register(token);
+  } else if (type == LABEL) {
+    write_label(token);
   } else {
     perror("Invalid type.\n");
     exit(EXIT_FAILURE);
@@ -310,10 +333,12 @@ void set_expect(int n, token_type a, token_type b) {
   if (n < 0 || n > 2) {
     printf("In set_expect, n has to be < 2 and > 0\n");
   }
+  
   expect_head = n;
-  expect[2] = a;
-  expect[1] = b;
   expect[0] = INSTRUCTION;
+
+  expect[1] = (n == 2) ? b : a;
+  expect[2] = (n == 2) ? a : b;
 }
 
 void write_instruction(char *token) {
@@ -338,4 +363,13 @@ void write_register(char *token) {
   }
   printf("Invalid register. You used %s\n", token);
   exit(EXIT_FAILURE);
+}
+
+void write_label(char *token) {
+  for (int i = 0; i <= labels_head; ++i) {
+    if (strcmp(token, label_map[i]->label) == 0) {
+      putc((uint8_t)label_map[i]->address, output_file);
+    }
+  }
+  --expect_head;
 }

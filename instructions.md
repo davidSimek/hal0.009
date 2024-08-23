@@ -43,3 +43,5 @@ Last 4 bits specify specific operation. For example `0110` might be move operati
 | instruction | name | explanation       |
 |------------:|-----:|:------------------|
 |  11-00-0000 | exit | shuts down system |
+|  11-00-0001 |  jmp | jumps to address  |
+|             |      |                   |

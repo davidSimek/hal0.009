@@ -1,8 +1,8 @@
-main:
 	MOVAR 33  A
 	MOVAR 31  B
 function:
 	MOVRR B   D
 	MOVRM D  22
+	JMP   function
 	MOVMR 22  F
 	EXIT
