@@ -129,6 +129,7 @@ void execute_mov(uint8_t instruction) {
 }
 
 void execute_jmp(uint8_t instruction) {
+  printf("jumping to %d\n", arg1());
   registers[PC] = arg1();
 }
 

@@ -366,7 +366,7 @@ void write_register(char *token) {
 }
 
 void write_label(char *token) {
-  for (int i = 0; i <= labels_head; ++i) {
+  for (int i = 0; i < labels_head; ++i) {
     if (strcmp(token, label_map[i]->label) == 0) {
       putc((uint8_t)label_map[i]->address, output_file);
     }
