@@ -1,4 +1,7 @@
-MOVAR 33 A
-MOVAR 12 B
-MOVRR B  C
-EXIT
+main:
+	MOVAR 33 A
+	MOVAR 12 B
+	MOVRR B  C
+	JMP exit
+exit:
+	EXIT
