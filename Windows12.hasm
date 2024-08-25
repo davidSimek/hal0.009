@@ -1,12 +1,7 @@
-main:
-	MOVAR 33  A
-	MOVAR 31  B
-	JMP   function
-exit:
-	EXIT
-
-function:
-	MOVRR B   D
-	MOVRM D  22
-	MOVMR 22  F
-	JMP   exit
+movar	22 A
+inc  	A
+movar   22 B 
+dec	B
+movar   23 C
+cmp     A  C
+exit

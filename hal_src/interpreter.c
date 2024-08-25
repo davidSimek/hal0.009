@@ -7,13 +7,16 @@
 #include <stdlib.h>
 
 typedef enum {
+  INC = 0,
+  DEC = 1,
+  CMP = 2
+} math_instructions;
+
+typedef enum {
   MOV = 0
 } memory_instructions;
 
- typedef enum {
-  EXIT = 0,
-  JMP  = 1
-} flow_instructions;
+typedef enum { EXIT = 0, JMP = 1 } flow_instructions;
 
 typedef enum {
   INVALID = 0,
@@ -33,6 +36,10 @@ int execute_math_instruction(uint8_t instruction);
 int execute_memory_instruction(uint8_t instruction);
 int execute_flow_instruction(uint8_t instruction);
 
+void execute_inc(uint8_t instruction);
+void execute_dec(uint8_t instruction);
+void execute_cmp(uint8_t instruction);
+
 void execute_mov(uint8_t instruction);
 
 void execute_exit(uint8_t instruction);
@@ -43,7 +50,7 @@ uint8_t arg2();
 
 void run() {
   while (should_run) {
-    if (registers[PC] > USER_MEMORY_SIZE - 1) {
+    if (registers[PC] > USER_MEMORY_SIZE - 2) {
       hal_exit(DIDNT_EXIT_PROGRAM);
     }
     handle_instruction();
@@ -52,6 +59,7 @@ void run() {
 
 void handle_instruction() {
   int move_by = execute_instruction();
+  printf("moving by %d\n", move_by);
   registers[PC] += move_by;
 }
 
@@ -77,10 +85,26 @@ int execute_instruction() {
   exit(EXIT_FAILURE);
 }
 
+// executes math instruction, and returns how many uint8_ts till next instruction including instruction itself
 int execute_math_instruction(uint8_t instruction) {
-  return 1;
+  uint8_t instruction_type = instruction & 0b00001111;
+  switch (instruction_type) {
+  case INC:
+    execute_inc(instruction);
+    return 2;
+  case DEC:
+    execute_dec(instruction);
+    return 2;
+  case CMP:
+    execute_cmp(instruction);
+    return 3;
+  default:
+      printf("invalid instruction %d in execute_math_instruction()\n", instruction);
+      exit(EXIT_FAILURE);
+  }
 }
 
+// executes flow instruction, and returns how many uint8_ts till next instruction including instruction itself
 int execute_flow_instruction(uint8_t instruction) {
   uint8_t instruction_type = instruction & 0b00001111;
   switch (instruction_type) {
@@ -97,6 +121,8 @@ int execute_flow_instruction(uint8_t instruction) {
     exit(EXIT_FAILURE);
   }
 }
+
+// executes memory instruction, and returns how many uint8_ts till next instruction including instruction itself
 int execute_memory_instruction(uint8_t instruction) {
   uint8_t instruction_type = instruction & 0b00001111;
   switch (instruction_type) {
@@ -129,8 +155,22 @@ void execute_mov(uint8_t instruction) {
 }
 
 void execute_jmp(uint8_t instruction) {
-  printf("jumping to %d\n", arg1());
+  (void)(instruction);
   registers[PC] = arg1();
+}
+
+void execute_inc(uint8_t instruction) {
+  (void)(instruction);
+  ++registers[arg1()];
+}
+void execute_dec(uint8_t instruction) {
+  (void)(instruction);
+  --registers[arg1()];
+}
+
+void execute_cmp(uint8_t instruction) {
+  (void)(instruction);
+  registers[RESULT] = (registers[arg1()] == registers[arg2()]) ? 1 : 0;
 }
 
 uint8_t arg1() {

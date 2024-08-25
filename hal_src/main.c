@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 void handle_interupt(int signal) {
+  (void)(signal);
   printf("\nSIGINT caught, killing hal...\n");
   kill_hal();
 }

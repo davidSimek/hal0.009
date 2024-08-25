@@ -7,7 +7,18 @@ simple virtual machine
 - its assembler
 
 ## News
-- Assembler now can process labels like `copyAtoB:` and jump to them using `jmp` instruction.
+- Support for `inc`, `dec` and `cmp` instructions.
+- You can either write instructions in lowercase, or uppercase  
+```asm
+movar 22 A
+exit
+```
+and  
+```asm
+MOVAR 22 A
+EXIT
+```
+both work.
 
 ## How to use:
 1. Check instruction.md for avalible instructions.
@@ -22,7 +33,7 @@ simple virtual machine
    ```
    mov_123_to_C:
 	   MOVAR 123 C
-	   jmp exit
+	   JMP exit
    exit:
 	   EXIT
    ```

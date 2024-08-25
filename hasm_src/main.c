@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define INSTRUCTION_MAP_SIZE 6
+#define INSTRUCTION_MAP_SIZE 18
 
 typedef enum {
   NUMBER      = 0,
@@ -15,10 +15,18 @@ typedef enum {
 } token_type;
 
 typedef enum {
+  // math instructions
+  INC   = 0b01000000,
+  DEC   = 0b01000001,
+  CMP   = 0b01000010,
+  
+  // memory instructions
   MOVAR = 0b10000000,
   MOVRR = 0b10010000,
   MOVRM = 0b10100000,
   MOVMR = 0b10110000,
+
+  // flow instructions
   EXIT  = 0b11000000,
   JMP   = 0b11000001
 } hal_instruction;
@@ -67,12 +75,30 @@ typedef struct {
 } label_entry;
 
 instruction_entry instruction_map[INSTRUCTION_MAP_SIZE] = {
+  // math instruction
+  {"INC",   INC,   1, REGISTER, NONE},
+  {"inc",   INC,   1, REGISTER, NONE},
+  {"DEC",   DEC,   1, REGISTER, NONE},
+  {"dec",   DEC,   1, REGISTER, NONE},
+  {"CMP",   CMP,   2, REGISTER, REGISTER},
+  {"cmp",   CMP,   2, REGISTER, REGISTER},
+  
+  
+  // memory instructions
   {"MOVAR", MOVAR, 2, NUMBER,   REGISTER},
+  {"movar", MOVAR, 2, NUMBER,   REGISTER},
   {"MOVRR", MOVRR, 2, REGISTER, REGISTER},
+  {"movrr", MOVRR, 2, REGISTER, REGISTER},
   {"MOVRM", MOVRM, 2, REGISTER, NUMBER},
+  {"movrm", MOVRM, 2, REGISTER, NUMBER},
   {"MOVMR", MOVMR, 2, NUMBER,   REGISTER},
+  {"movmr", MOVMR, 2, NUMBER,   REGISTER},
+
+  // flow instructions
   {"EXIT",  EXIT,  0, NONE,     NONE},
-  {"JMP",   JMP,   1, LABEL,    NONE}
+  {"exit",  EXIT,  0, NONE,     NONE},
+  {"JMP",   JMP,   1, LABEL,    NONE},
+  {"jmp",   JMP,   1, LABEL,    NONE}
 };
 
 register_entry register_map[REGISTER_COUNT] = {
@@ -366,7 +392,7 @@ void write_register(char *token) {
 }
 
 void write_label(char *token) {
-  for (int i = 0; i < labels_head; ++i) {
+  for (unsigned int i = 0; i < labels_head; ++i) {
     if (strcmp(token, label_map[i]->label) == 0) {
       putc((uint8_t)label_map[i]->address, output_file);
     }
