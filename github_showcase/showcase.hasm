@@ -1,7 +1,11 @@
-main:
-	MOVAR 33 A
-	MOVAR 12 B
-	MOVRR B  C
-	JMP exit
-exit:
-	EXIT
+jmp start_program
+
+end_program:
+	exit
+
+start_program:
+	movar	100	A
+	movar	200	B
+	movrr   A 	C
+	cmp 	A	C
+	jmp 	end_program

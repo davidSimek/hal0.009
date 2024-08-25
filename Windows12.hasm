@@ -1,7 +1,11 @@
-movar	22 A
-inc  	A
-movar   22 B 
-dec	B
-movar   23 C
-cmp     A  C
-exit
+jmp start_program
+
+end_program:
+	exit
+
+start_program:
+	movar	100	A
+	movar	200	B
+	movrr   A 	C
+	cmp 	A	C
+	jmp 	end_program

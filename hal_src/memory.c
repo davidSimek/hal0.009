@@ -1,16 +1,24 @@
-// BTBP -> byte to binary pattern
-// BTB -> byte to binary
-#define BTBP "%c%c%c%c%c%c%c%c"
-#define BTB(byte)  \
-  ((byte) & 0x80 ? '1' : '0'), \
-  ((byte) & 0x40 ? '1' : '0'), \
-  ((byte) & 0x20 ? '1' : '0'), \
-  ((byte) & 0x10 ? '1' : '0'), \
-  ((byte) & 0x08 ? '1' : '0'), \
-  ((byte) & 0x04 ? '1' : '0'), \
-  ((byte) & 0x02 ? '1' : '0'), \
-  ((byte) & 0x01 ? '1' : '0') 
+// WTBP -> word (2 bytes) to binary pattern
+// WTB  -> word (2 bytes) to binary
+#define WTBP "%c%c%c%c%c%c%c%c %c%c%c%c%c%c%c%c"
 
+#define WTB(word)  \
+  ((word) & 0x8000 ? '1' : '0'), \
+  ((word) & 0x4000 ? '1' : '0'), \
+  ((word) & 0x2000 ? '1' : '0'), \
+  ((word) & 0x1000 ? '1' : '0'), \
+  ((word) & 0x0800 ? '1' : '0'), \
+  ((word) & 0x0400 ? '1' : '0'), \
+  ((word) & 0x0200 ? '1' : '0'), \
+  ((word) & 0x0100 ? '1' : '0'), \
+  ((word) & 0x0080 ? '1' : '0'), \
+  ((word) & 0x0040 ? '1' : '0'), \
+  ((word) & 0x0020 ? '1' : '0'), \
+  ((word) & 0x0010 ? '1' : '0'), \
+  ((word) & 0x0008 ? '1' : '0'), \
+  ((word) & 0x0004 ? '1' : '0'), \
+  ((word) & 0x0002 ? '1' : '0'), \
+  ((word) & 0x0001 ? '1' : '0')
 
 #include "memory.h"
 #include "error.h"
@@ -23,7 +31,7 @@ uint8_t *program_memory = 0;
 size_t program_memory_size = 0;
 uint8_t *user_memory = 0;
 
-uint8_t registers[20] = {0};
+uint16_t registers[20] = {0};
 
 char* program_name;
 
@@ -77,24 +85,24 @@ void clean_user_memory() {
 
 void dump_registers() {
   printf("Registers dump.\n");
-  printf("Result: "BTBP"\n", BTB(registers[RESULT]));
-  printf("     a: "BTBP"\n", BTB(registers[A]));
-  printf("     b: "BTBP"\n", BTB(registers[B]));
-  printf("     c: "BTBP"\n", BTB(registers[C]));
-  printf("     d: "BTBP"\n", BTB(registers[D]));
-  printf("     e: "BTBP"\n", BTB(registers[E]));
-  printf("     f: "BTBP"\n", BTB(registers[F]));
-  printf("     g: "BTBP"\n", BTB(registers[G]));
-  printf("     h: "BTBP"\n", BTB(registers[H]));
-  printf("     i: "BTBP"\n", BTB(registers[I]));
-  printf("     j: "BTBP"\n", BTB(registers[J]));
-  printf("     k: "BTBP"\n", BTB(registers[K]));
-  printf("     l: "BTBP"\n", BTB(registers[L]));
-  printf("     m: "BTBP"\n", BTB(registers[M]));
-  printf("     n: "BTBP"\n", BTB(registers[N]));
-  printf("     o: "BTBP"\n", BTB(registers[O]));
-  printf("     p: "BTBP"\n", BTB(registers[P]));
-  printf("    sp: "BTBP"\n", BTB(registers[SP]));
-  printf("    bp: "BTBP"\n", BTB(registers[BP]));
-  printf("    pc: "BTBP"\n", BTB(registers[PC]));
+  printf("Result: "WTBP"\n", WTB(registers[RESULT]));
+  printf("     a: "WTBP"\n", WTB(registers[A]));
+  printf("     b: "WTBP"\n", WTB(registers[B]));
+  printf("     c: "WTBP"\n", WTB(registers[C]));
+  printf("     d: "WTBP"\n", WTB(registers[D]));
+  printf("     e: "WTBP"\n", WTB(registers[E]));
+  printf("     f: "WTBP"\n", WTB(registers[F]));
+  printf("     g: "WTBP"\n", WTB(registers[G]));
+  printf("     h: "WTBP"\n", WTB(registers[H]));
+  printf("     i: "WTBP"\n", WTB(registers[I]));
+  printf("     j: "WTBP"\n", WTB(registers[J]));
+  printf("     k: "WTBP"\n", WTB(registers[K]));
+  printf("     l: "WTBP"\n", WTB(registers[L]));
+  printf("     m: "WTBP"\n", WTB(registers[M]));
+  printf("     n: "WTBP"\n", WTB(registers[N]));
+  printf("     o: "WTBP"\n", WTB(registers[O]));
+  printf("     p: "WTBP"\n", WTB(registers[P]));
+  printf("    sp: "WTBP"\n", WTB(registers[SP]));
+  printf("    bp: "WTBP"\n", WTB(registers[BP]));
+  printf("    pc: "WTBP"\n", WTB(registers[PC]));
 }

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define MAX_BINARY_SIZE 65534
 #define INSTRUCTION_MAP_SIZE 18
 
 typedef enum {
@@ -56,6 +57,8 @@ typedef enum {
   PC     = 19
 } hal_register;
 
+bool has_2_bytes(char* token);
+
 typedef struct {
   char* token;
   hal_instruction instruction;
@@ -71,7 +74,7 @@ typedef struct {
 
 typedef struct {
   char* label;
-  uint8_t address;
+  uint16_t address;
 } label_entry;
 
 instruction_entry instruction_map[INSTRUCTION_MAP_SIZE] = {
@@ -82,7 +85,6 @@ instruction_entry instruction_map[INSTRUCTION_MAP_SIZE] = {
   {"dec",   DEC,   1, REGISTER, NONE},
   {"CMP",   CMP,   2, REGISTER, REGISTER},
   {"cmp",   CMP,   2, REGISTER, REGISTER},
-  
   
   // memory instructions
   {"MOVAR", MOVAR, 2, NUMBER,   REGISTER},
@@ -134,6 +136,11 @@ char* output_file_name;
 
 int expect_head = 0;
 
+uint16_t parsed_int = 0;
+
+int output_size = 0;
+size_t current_address = 0;
+
 void load_hasm(FILE *);
 
 label_entry** label_map = 0;
@@ -166,8 +173,6 @@ const char* num_to_type(size_t n) {
     return "INSTRUCTION";
   return "not valid instruction";
 }
-
-int parsed_int = 0;
 
 
 
@@ -224,7 +229,7 @@ int main(int argc, char** argv) {
   assemble_hasm();
 
   fclose(output_file);
-  printf("Successfully assembled %s", output_file_name);
+  printf("Successfully assembled %s\nbinary size: %dB/%dB", output_file_name, output_size, MAX_BINARY_SIZE);
   exit(EXIT_SUCCESS);
 }
 
@@ -247,14 +252,18 @@ void load_hasm(FILE* hasm) {
 }
 
 void find_labels() {
-  size_t current_address = 0;
+
   label_map = malloc(sizeof(label_entry*));
   char* token = strtok(hasm_source_labels, " \n\t");
   while (token) {
      if (token[strlen(token) - 1] == ':') {
        add_label(token, current_address);
      } else {
-       ++current_address;
+       if (has_2_bytes(token)) {
+	 current_address += 2;
+       } else {
+	 ++current_address;
+       }
      }
     token = strtok(NULL, " \n\t");
   }
@@ -268,10 +277,13 @@ void add_label(char *token, size_t current_address) {
   label_map[labels_head]->address = current_address;
   ++labels_head;
   label_map = realloc(label_map, labels_head);
-  printf("label %s\ton address %3d added\n", label_map[labels_head - 1]->label, label_map[labels_head - 1]->address);
 }
 
 void assemble_hasm() {
+  if (output_size >= MAX_BINARY_SIZE) {
+    printf("Program is too big. Max binary size is %d.\n", MAX_BINARY_SIZE);
+  }
+  
   char* token = strtok(hasm_source, " \n\t");
   expect_head = 0;
   expect[expect_head] = INSTRUCTION;
@@ -310,7 +322,7 @@ void check_matches_expectation(char* token) {
   if (expect[expect_head] == NUMBER) {
     char* end;
     parsed_int = strtol(token, &end, 10);
-    if (*end == '\0' && parsed_int >= 0 && parsed_int < 255) {
+    if (*end == '\0' && parsed_int > 0 && parsed_int < 65535) {
       return;
     }
     printf("Expected number, got %s\n", token);
@@ -343,8 +355,8 @@ void write_as_bin(token_type type, char *token) {
   if (type == INSTRUCTION) {
     write_instruction(token);
   } else if (type == NUMBER) {
-    fputc((uint8_t)parsed_int, output_file);
-    --expect_head;
+    write_number(token);
+
   } else if (type == REGISTER) {
     write_register(token);
   } else if (type == LABEL) {
@@ -372,6 +384,7 @@ void write_instruction(char *token) {
     if (strcmp(token, instruction_map[i].token) == 0) {
       fputc((uint8_t)instruction_map[i].instruction, output_file);
       set_expect(instruction_map[i].expect, instruction_map[i].arg1, instruction_map[i].arg2);
+      ++output_size;
       return;
     }
   }
@@ -382,8 +395,9 @@ void write_instruction(char *token) {
 void write_register(char *token) {
   for (int i = 0; i < REGISTER_COUNT; ++i) {
     if (strcmp(token, register_map[i].token) == 0) {
-      putc((uint8_t)register_map[i].hal_register, output_file);
+      fputc((uint8_t)register_map[i].hal_register, output_file);
       --expect_head;
+      ++output_size;
       return;
     }
   }
@@ -394,8 +408,33 @@ void write_register(char *token) {
 void write_label(char *token) {
   for (unsigned int i = 0; i < labels_head; ++i) {
     if (strcmp(token, label_map[i]->label) == 0) {
-      putc((uint8_t)label_map[i]->address, output_file);
+      fputc((uint8_t)(label_map[i]->address >> 8), output_file);
+      fputc((uint8_t)(label_map[i]->address & 0xff), output_file);
     }
   }
   --expect_head;
+  output_size += 2;
+}
+
+void write_number(char *token) {
+  (void)(token);
+  fputc((uint8_t)(parsed_int >> 8), output_file);
+  fputc((uint8_t)(parsed_int & 0xff), output_file);
+  --expect_head;
+  output_size += 2;
+}
+
+bool has_2_bytes(char* token) {
+  for (int i = 0; i < INSTRUCTION_MAP_SIZE; ++i) {
+    if (strcmp(instruction_map[i].token, token) == 0) {
+      return false;
+    }
+  }
+  
+  for (int i = 0; i < REGISTER_COUNT; ++i) {
+    if (strcmp(register_map[i].token, token) == 0) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -27,14 +27,14 @@ typedef enum {
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MAX_PROGRAM_MEMORY_SIZE (64 * 100)
-#define USER_MEMORY_SIZE 256 // 255 valid | 0 invalid
+#define MAX_PROGRAM_MEMORY_SIZE 65536
+#define USER_MEMORY_SIZE        65536
 
 extern uint8_t *program_memory;
 extern size_t program_memory_size;
 extern uint8_t *user_memory;
 
-extern uint8_t registers[20];
+extern uint16_t registers[20];
 
 extern char* program_name;
 

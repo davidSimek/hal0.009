@@ -1,6 +1,6 @@
 # registers
 
-This virtual machine has few types of registers. Every single one of these is 8 bits big.
+This virtual machine has few types of registers. Every single one of these is 16 bits big.
 ## Result register
 It has 1 result register. It stores result of calculation, till it is overwriten.
 

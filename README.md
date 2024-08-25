@@ -7,8 +7,10 @@ simple virtual machine
 - its assembler
 
 ## News
+- registers and numbers are now 16 bit, because it was limiting
 - Support for `inc`, `dec` and `cmp` instructions.
 - You can either write instructions in lowercase, or uppercase  
+
 ```asm
 movar 22 A
 exit
